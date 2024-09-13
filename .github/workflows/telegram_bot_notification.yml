@@ -1,0 +1,41 @@
+name: Telegram Bot Notification
+
+# Trigger the workflow on push and pull requests
+on:
+  push:
+    branches:
+      - main    # Trigger the workflow on pushes to the main branch
+  pull_request:
+    branches:
+      - main    # Trigger the workflow on pull requests to the main branch
+
+jobs:
+  notify-telegram:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Send Telegram Notification
+      # Environment variables containing secrets and GitHub data
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # Bot token from GitHub Secrets
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}      # Chat ID from GitHub Secrets
+        GITHUB_ACTOR: ${{ github.actor }}                      # Username of the user who triggered the action
+        GITHUB_REPOSITORY: ${{ github.repository }}            # Repository name
+        GITHUB_REF: ${{ github.ref }}                          # Branch reference
+        GITHUB_EVENT_NAME: ${{ github.event_name }}            # Type of event (push, pull_request)
+        GITHUB_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}  # Commit message (if available)
+
+      run: |
+        # Construct the message to send to Telegram
+        MESSAGE="🚀 New $GITHUB_EVENT_NAME event on repository: $GITHUB_REPOSITORY\nBranch: $GITHUB_REF\nTriggered by: $GITHUB_ACTOR"
+
+        # If it's a push event, include the commit message
+        if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          MESSAGE="$MESSAGE\nCommit Message: $GITHUB_COMMIT_MESSAGE"
+        fi
+
+        # Send the message to Telegram using the Bot API
+        curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+        -d "chat_id=$TELEGRAM_CHAT_ID" \
+        -d "text=$MESSAGE"
+        
